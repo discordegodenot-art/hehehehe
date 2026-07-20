@@ -2,7 +2,7 @@
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local VirtualInputManager = game:GetService("VirtualInputManager") -- Serviço para simular cliques reais rápidos
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local Camera = workspace.CurrentCamera
 
 local player = Players.LocalPlayer
@@ -17,13 +17,12 @@ local Theme = {
     TabInactive = Color3.fromRGB(14, 14, 16),    -- Aba inativa
     CardBg = Color3.fromRGB(22, 22, 26),         -- Fundo dos inputs/caixas de texto
     
-    -- Cores dos Botões (Preto Claro / Grafite)
     BtnDefault = Color3.fromRGB(35, 35, 40),     -- Preto Claro (Desativado)
     BtnActive = Color3.fromRGB(55, 55, 60),      -- Cinza/Preto mais claro (Ativado)
     
     TextActive = Color3.fromRGB(240, 240, 245),  -- Branco suave
     TextMuted = Color3.fromRGB(110, 110, 115),    -- Cinza fosco
-    Danger = Color3.fromRGB(150, 40, 40)         -- Apenas para o botão fechar (X)
+    Danger = Color3.fromRGB(150, 40, 40)         -- Botão fechar (X)
 }
 
 -- =============================================================================
@@ -34,7 +33,6 @@ ScreenGui.Name = "CustomModernHUD_TotalDark"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Janela Principal
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 430, 0, 520)
 MainFrame.Position = UDim2.new(0.5, -215, 0.5, -260)
@@ -46,7 +44,6 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 12)
 MainCorner.Parent = MainFrame
 
--- Barra de Título
 local Topbar = Instance.new("Frame")
 Topbar.Size = UDim2.new(1, 0, 0, 45)
 Topbar.BackgroundColor3 = Theme.Topbar
@@ -189,7 +186,7 @@ local Binds = {
     Aimbot = "V",
     Freecam = "C",
     GodMode = "J",
-    AutoClick = "T" -- Adicionado bind padrão para o Auto Clicker
+    AutoClick = "T"
 }
 
 local function CreateRowFrame(parent, order)
@@ -262,7 +259,7 @@ local function CreateModernTextBox(parent, placeholder, defaultText, order)
 end
 
 -- =============================================================================
--- CONSTRUÇÃO DOS ELEMENTOS DA PÁGINA 1 (Movimento)
+-- CONSTRUÇÃO DOS ELEMENTOS DA INTERFACE
 -- =============================================================================
 local WalkSpeedBox = CreateModernTextBox(Page1, "Velocidade de caminhada", "16", 1)
 local ApplyWalkSpeedButton = CreateModernButton(Page1, "Aplicar WalkSpeed", Theme.BtnDefault, UDim2.new(1, 0, 0, 40), nil, 2)
@@ -286,9 +283,7 @@ local RowFreecam = CreateRowFrame(Page1, 9)
 local FreecamToggleButton = CreateModernButton(RowFreecam, "Ativar Freecam", Theme.BtnDefault)
 local FreecamBindBox = CreateModernBindBox(RowFreecam, Binds.Freecam)
 
--- =============================================================================
--- CONSTRUÇÃO DOS ELEMENTOS DA PÁGINA 2 (Visuais / Outros)
--- =============================================================================
+-- Página 2
 local RowESP = CreateRowFrame(Page2, 1)
 local ESPToggleButton = CreateModernButton(RowESP, "Ativar ESP", Theme.BtnDefault)
 local ESPBindBox = CreateModernBindBox(RowESP, Binds.ESP)
@@ -308,20 +303,16 @@ local AimbotToggleButton = CreateModernButton(RowAimbot, "Ativar Aimbot", Theme.
 local AimbotPartButton = CreateModernButton(RowAimbot, "Head", Theme.CardBg, UDim2.new(0, 70, 1, 0), UDim2.new(1, -160, 0, 0))
 local AimbotBindBox = CreateModernBindBox(RowAimbot, Binds.Aimbot)
 
--- =============================================================================
--- CONSTRUÇÃO DOS ELEMENTOS DA PÁGINA 3 (Modificadores)
--- =============================================================================
+-- Página 3
 local RowGod = CreateRowFrame(Page3, 1)
 local GodModeToggleButton = CreateModernButton(RowGod, "Ativar God Mode", Theme.BtnDefault)
 local GodModeBindBox = CreateModernBindBox(RowGod, Binds.GodMode)
 
--- NOVO ELEMENTO: Auto Clicker na Linha 2 dos Modificadores
 local RowAutoClick = CreateRowFrame(Page3, 2)
 local AutoClickToggleButton = CreateModernButton(RowAutoClick, "Ativar Auto Clicker", Theme.BtnDefault)
 local AutoClickBindBox = CreateModernBindBox(RowAutoClick, Binds.AutoClick)
 
-
--- Botão Flutuante de Reabrir Menu Minimalista Dark
+-- Botão Flutuante de Reabrir Menu
 local OpenMenuButton = Instance.new("TextButton")
 OpenMenuButton.Size = UDim2.new(0, 130, 0, 40)
 OpenMenuButton.Position = UDim2.new(0, 20, 0.5, -20)
@@ -342,7 +333,7 @@ Page2.CanvasSize = UDim2.new(0, 0, 0, Page2.UIListLayout.AbsoluteContentSize.Y +
 Page3.CanvasSize = UDim2.new(0, 0, 0, Page3.UIListLayout.AbsoluteContentSize.Y + 20)
 
 --------------------------------------------------------------------------------
--- LÓGICA DE ALTERNAR AS ABAS (3 ABAS)
+-- ALTERNAR AS ABAS
 --------------------------------------------------------------------------------
 local function ResetTabVisuals()
     Tab1Button.BackgroundColor3 = Theme.TabInactive Tab1Button.TextColor3 = Theme.TextMuted
@@ -370,16 +361,14 @@ Tab3Button.MouseButton1Click:Connect(function()
 end)
 
 --------------------------------------------------------------------------------
--- Variáveis de controle de Estado
+-- ESTADOS E CONTROLES
 --------------------------------------------------------------------------------
-local ESP = {}
-local LocalPlayer = Players.LocalPlayer
 local esp_active = false 
 local noclip_active = false 
 local fly_active = false 
 local invisible_active = false 
 local godmode_active = false
-local autoclick_active = false -- Controle do Auto Click
+local autoclick_active = false
 
 local spectate_active = false 
 local targetList = {}
@@ -389,7 +378,6 @@ local aimbot_active = false
 local aimbot_part = "Head" 
 local aiming = false
 
--- Variáveis da Freecam (Câmera Livre)
 local freecam_active = false
 local freecam_pos = Vector3.new()
 local freecam_rotX = 0
@@ -398,19 +386,103 @@ local holding_mouse_look = false
 
 local customWalkSpeed = 16 
 local walkspeed_bypass_active = false 
-
--- Variáveis de Pulo Modificado
 local customJumpPower = 50
 local jumppower_bypass_active = false
 
--- Guardas para conexões do God Mode
 local godConnection: RBXScriptConnection? = nil
 
 --------------------------------------------------------------------------------
--- Mudança de Binds Escuta
+-- SISTEMA DE ESP MODERNO E CORRIGIDO (NATIVO HIGHLIGHT)
+--------------------------------------------------------------------------------
+local ESP_Storage = {}
+
+local function CreatePlayerESP(p: Player)
+    if p == player then return end
+    
+    local function setupChar(char)
+        if not esp_active then return end
+        if ESP_Storage[p] then pcall(function() ESP_Storage[p]:Destroy() end) end
+        
+        local container = Instance.new("Folder")
+        container.Name = "ESP_" .. p.Name
+        container.Parent = ScreenGui
+        ESP_Storage[p] = container
+        
+        -- Outline/Chams moderno e limpo
+        local highlight = Instance.new("Highlight")
+        highlight.FillColor = Color3.fromRGB(180, 50, 50)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0.2
+        highlight.Adornee = char
+        highlight.Parent = container
+        
+        -- Nome e Distância flutuante
+        local head = char:WaitForChild("Head", 5)
+        if head then
+            local billboard = Instance.new("BillboardGui")
+            billboard.Size = UDim2.new(0, 200, 0, 50)
+            billboard.AlwaysOnTop = true
+            billboard.ExtentsOffset = Vector3.new(0, 2.5, 0)
+            billboard.Adornee = head
+            billboard.Parent = container
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            textLabel.TextStrokeTransparency = 0.2
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.TextSize = 13
+            textLabel.Parent = billboard
+            
+            local conn
+            conn = RunService.RenderStepped:Connect(function()
+                if not esp_active or not char:IsDescendantOf(workspace) or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+                    conn:Disconnect()
+                    return
+                end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = math.floor((hrp.Position - player.Character.HumanoidRootPart.Position).Magnitude)
+                    textLabel.Text = string.format("%s\n[%d studs]", p.DisplayName, dist)
+                end
+            end)
+        end
+    end
+
+    if p.Character then task.spawn(setupChar, p.Character) end
+    p.CharacterAdded:Connect(setupChar)
+end
+
+local function RemovePlayerESP(p: Player)
+    if ESP_Storage[p] then
+        pcall(function() ESP_Storage[p]:Destroy() end)
+        ESP_Storage[p] = nil
+    end
+end
+
+local function ToggleESP()
+    esp_active = not esp_active 
+    if esp_active then
+        ESPToggleButton.Text = "Desativar ESP" ESPToggleButton.BackgroundColor3 = Theme.BtnActive 
+        for _, p in ipairs(Players:GetPlayers()) do CreatePlayerESP(p) end
+    else
+        ESPToggleButton.Text = "Ativar ESP" ESPToggleButton.BackgroundColor3 = Theme.BtnDefault 
+        for p, _ in pairs(ESP_Storage) do RemovePlayerESP(p) end
+    end
+end
+
+Players.PlayerAdded:Connect(function(p)
+    if esp_active then CreatePlayerESP(p) end
+end)
+Players.PlayerRemoving:Connect(RemovePlayerESP)
+
+--------------------------------------------------------------------------------
+-- ESCUTA DE BINDS E MENUS
 --------------------------------------------------------------------------------
 local function ListenForBindChange(box, bindKey)
-    box.FocusLost:Connect(function(enterPressed)
+    box.FocusLost:Connect(function()
         local text = box.Text:upper():gsub("%s+", "")
         if text ~= "" then Binds[bindKey] = text box.Text = text else box.Text = Binds[bindKey] end
     end)
@@ -426,80 +498,35 @@ ListenForBindChange(FreecamBindBox, "Freecam")
 ListenForBindChange(GodModeBindBox, "GodMode")
 ListenForBindChange(AutoClickBindBox, "AutoClick")
 
---------------------------------------------------------------------------------
--- Funções do Sistema
---------------------------------------------------------------------------------
 local function UpdateSpectateList()
     targetList = {}
     for _, p in ipairs(Players:GetPlayers()) do if p ~= player then table.insert(targetList, p) end end
     if targetIndex > #targetList then targetIndex = math.max(1, #targetList) end
 end
 
-Players.PlayerAdded:Connect(function(p) task.wait(0.5) UpdateSpectateList() end)
-Players.PlayerRemoving:Connect(function(p)
-    UpdateSpectateList()
-    if spectate_active and (not targetList[targetIndex] or targetList[targetIndex] == p) then
-        if #targetList > 0 then
-            targetIndex = 1
-            local targetPlayer = targetList[targetIndex]
-            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                Camera.CameraSubject = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
-                SpectateToggleButton.Text = targetPlayer.DisplayName
-            end
-        else
-            spectate_active = false
-            local localHumanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-            if localHumanoid then Camera.CameraSubject = localHumanoid end
-            SpectateToggleButton.Text = "Espectar"
-            SpectateToggleButton.BackgroundColor3 = Theme.BtnDefault
-        end
-    end
-end)
-
-local function ToggleESP()
-    esp_active = not esp_active 
-    if esp_active then
-        ESPToggleButton.Text = "Desativar ESP" ESPToggleButton.BackgroundColor3 = Theme.BtnActive 
-        for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then ESP.CreateESP(p) end end
-    else
-        ESPToggleButton.Text = "Ativar ESP" ESPToggleButton.BackgroundColor3 = Theme.BtnDefault 
-        for _, p in ipairs(Players:GetPlayers()) do ESP.RemoveESP(p) end
-    end
-end
-
 local function ToggleNoClip()
     noclip_active = not noclip_active 
-    if noclip_active then
-        NoClipToggleButton.Text = "Desativar NoClip" NoClipToggleButton.BackgroundColor3 = Theme.BtnActive 
-    else
-        NoClipToggleButton.Text = "Ativar NoClip" NoClipToggleButton.BackgroundColor3 = Theme.BtnDefault 
-    end
+    NoClipToggleButton.Text = noclip_active and "Desativar NoClip" or "Ativar NoClip"
+    NoClipToggleButton.BackgroundColor3 = noclip_active and Theme.BtnActive or Theme.BtnDefault
 end
 
 local function ToggleFly()
     fly_active = not fly_active 
-    if fly_active then
-        FlyToggleButton.Text = "Desativar Voo" FlyToggleButton.BackgroundColor3 = Theme.BtnActive 
-    else
-        FlyToggleButton.Text = "Ativar Voo" FlyToggleButton.BackgroundColor3 = Theme.BtnDefault 
-    end
+    FlyToggleButton.Text = fly_active and "Desativar Voo" or "Ativar Voo"
+    FlyToggleButton.BackgroundColor3 = fly_active and Theme.BtnActive or Theme.BtnDefault
 end
 
 local function ToggleInvisible()
     invisible_active = not invisible_active
     local char = player.Character
     if char then
-        if invisible_active then
-            InvisibleToggleButton.Text = "Desativar Invisibilidade" InvisibleToggleButton.BackgroundColor3 = Theme.BtnActive
-            for _, child in ipairs(char:GetDescendants()) do
-                if child:IsA("BasePart") and child.Name ~= "HumanoidRootPart" then child.Transparency = 1
-                elseif child:IsA("Decal") or child:IsA("Texture") then child.Transparency = 1 end
-            end
-        else
-            InvisibleToggleButton.Text = "Ativar Invisibilidade" InvisibleToggleButton.BackgroundColor3 = Theme.BtnDefault
-            for _, child in ipairs(char:GetDescendants()) do
-                if child:IsA("BasePart") and child.Name ~= "HumanoidRootPart" then child.Transparency = 0
-                elseif child:IsA("Decal") or child:IsA("Texture") then child.Transparency = 0 end
+        InvisibleToggleButton.Text = invisible_active and "Desativar Invisibilidade" or "Ativar Invisibilidade"
+        InvisibleToggleButton.BackgroundColor3 = invisible_active and Theme.BtnActive or Theme.BtnDefault
+        for _, child in ipairs(char:GetDescendants()) do
+            if child:IsA("BasePart") and child.Name ~= "HumanoidRootPart" then 
+                child.Transparency = invisible_active and 1 or 0
+            elseif child:IsA("Decal") or child:IsA("Texture") then 
+                child.Transparency = invisible_active and 1 or 0
             end
         end
     end
@@ -538,8 +565,9 @@ end
 
 local function ToggleAimbot()
     aimbot_active = not aimbot_active
-    if aimbot_active then AimbotToggleButton.Text = "Desativar Aimbot" AimbotToggleButton.BackgroundColor3 = Theme.BtnActive
-    else AimbotToggleButton.Text = "Ativar Aimbot" AimbotToggleButton.BackgroundColor3 = Theme.BtnDefault aiming = false end
+    AimbotToggleButton.Text = aimbot_active and "Desativar Aimbot" or "Ativar Aimbot"
+    AimbotToggleButton.BackgroundColor3 = aimbot_active and Theme.BtnActive or Theme.BtnDefault
+    if not aimbot_active then aiming = false end
 end
 
 function ToggleFreecam()
@@ -547,14 +575,10 @@ function ToggleFreecam()
     if freecam_active then
         FreecamToggleButton.Text = "Desativar Freecam"
         FreecamToggleButton.BackgroundColor3 = Theme.BtnActive
-        
         if spectate_active then ToggleSpectate() end
-        
         freecam_pos = Camera.CFrame.Position
         local _, y, x = Camera.CFrame:ToOrientation()
-        freecam_rotX = x
-        freecam_rotY = y
-        
+        freecam_rotX = x freecam_rotY = y
         Camera.CameraType = Enum.CameraType.Scriptable
     else
         FreecamToggleButton.Text = "Ativar Freecam"
@@ -562,7 +586,6 @@ function ToggleFreecam()
         Camera.CameraType = Enum.CameraType.Custom
         UIS.MouseBehavior = Enum.MouseBehavior.Default
         holding_mouse_look = false
-        
         local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then Camera.CameraSubject = humanoid end
     end
@@ -570,10 +593,10 @@ end
 
 local function ToggleGodMode()
     godmode_active = not godmode_active
+    GodModeToggleButton.Text = godmode_active and "Desativar God Mode" or "Ativar God Mode"
+    GodModeToggleButton.BackgroundColor3 = godmode_active and Theme.BtnActive or Theme.BtnDefault
+    
     if godmode_active then
-        GodModeToggleButton.Text = "Desativar God Mode"
-        GodModeToggleButton.BackgroundColor3 = Theme.BtnActive
-        
         local function ApplyGod()
             local ch = player.Character
             if ch then
@@ -592,30 +615,22 @@ local function ToggleGodMode()
         ApplyGod()
         player.CharacterAdded:Connect(ApplyGod)
     else
-        GodModeToggleButton.Text = "Ativar God Mode"
-        GodModeToggleButton.BackgroundColor3 = Theme.BtnDefault
-        if godConnection then
-            godConnection:Disconnect()
-            godConnection = nil
-        end
+        if godConnection then godConnection:Disconnect() godConnection = nil end
     end
 end
 
--- Função para Alternar o Auto Click
 local function ToggleAutoClick()
     autoclick_active = not autoclick_active
-    if autoclick_active then
-        AutoClickToggleButton.Text = "Desativar Auto Clicker"
-        AutoClickToggleButton.BackgroundColor3 = Theme.BtnActive
-    else
-        AutoClickToggleButton.Text = "Ativar Auto Clicker"
-        AutoClickToggleButton.BackgroundColor3 = Theme.BtnDefault
-    end
+    AutoClickToggleButton.Text = autoclick_active and "Desativar Auto Clicker" or "Ativar Auto Clicker"
+    AutoClickToggleButton.BackgroundColor3 = autoclick_active and Theme.BtnActive or Theme.BtnDefault
 end
 
+--------------------------------------------------------------------------------
+-- GATILHOS DE CONEXÕES E EVENTOS DE ENTRADA
+--------------------------------------------------------------------------------
 AimbotPartButton.MouseButton1Click:Connect(function()
-    if aimbot_part == "Head" then aimbot_part = "Torso" AimbotPartButton.Text = "Torso"
-    else aimbot_part = "Head" AimbotPartButton.Text = "Head" end
+    aimbot_part = (aimbot_part == "Head") and "Torso" or "Head"
+    AimbotPartButton.Text = aimbot_part
 end)
 
 UIS.InputBegan:Connect(function(input, processed)
@@ -623,7 +638,6 @@ UIS.InputBegan:Connect(function(input, processed)
         holding_mouse_look = true
         UIS.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
     end
-    
     if processed then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbot_active then aiming = true end
 end)
@@ -631,10 +645,7 @@ end)
 UIS.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton2 then 
         aiming = false 
-        if freecam_active then
-            holding_mouse_look = false
-            UIS.MouseBehavior = Enum.MouseBehavior.Default
-        end
+        if freecam_active then holding_mouse_look = false UIS.MouseBehavior = Enum.MouseBehavior.Default end
     end
 end)
 
@@ -661,16 +672,16 @@ AutoClickToggleButton.MouseButton1Click:Connect(ToggleAutoClick)
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end 
     if input.UserInputType == Enum.UserInputType.Keyboard then
-        local keyPressed = input.KeyCode.Name
-        if keyPressed == Binds.ESP then ToggleESP()
-        elseif keyPressed == Binds.NoClip then ToggleNoClip()
-        elseif keyPressed == Binds.Fly then ToggleFly()
-        elseif keyPressed == Binds.Invisible then ToggleInvisible()
-        elseif keyPressed == Binds.Spectate then ToggleSpectate()
-        elseif keyPressed == Binds.Aimbot then ToggleAimbot()
-        elseif keyPressed == Binds.Freecam then ToggleFreecam()
-        elseif keyPressed == Binds.GodMode then ToggleGodMode()
-        elseif keyPressed == Binds.AutoClick then ToggleAutoClick()
+        local kp = input.KeyCode.Name
+        if kp == Binds.ESP then ToggleESP()
+        elseif kp == Binds.NoClip then ToggleNoClip()
+        elseif kp == Binds.Fly then ToggleFly()
+        elseif kp == Binds.Invisible then ToggleInvisible()
+        elseif kp == Binds.Spectate then ToggleSpectate()
+        elseif kp == Binds.Aimbot then ToggleAimbot()
+        elseif kp == Binds.Freecam then ToggleFreecam()
+        elseif kp == Binds.GodMode then ToggleGodMode()
+        elseif kp == Binds.AutoClick then ToggleAutoClick()
         end
     end
 end)
@@ -694,15 +705,14 @@ local function GetClosestPlayerToCursor()
     return closestPlayer
 end
 
--- Ativadores de Modificação de Atributos de Estado de Movimento
 ApplyWalkSpeedButton.MouseButton1Click:Connect(function()
     local speed = tonumber(WalkSpeedBox.Text)
-    if speed then customWalkSpeed = speed; if speed == 16 then walkspeed_bypass_active = false else walkspeed_bypass_active = true end end
+    if speed then customWalkSpeed = speed; walkspeed_bypass_active = (speed ~= 16) end
 end)
 
 ApplyJumpPowerButton.MouseButton1Click:Connect(function()
     local power = tonumber(JumpPowerBox.Text)
-    if power then customJumpPower = power; if power == 50 then jumppower_bypass_active = false else jumppower_bypass_active = true end end
+    if power then customJumpPower = power; jumppower_bypass_active = (power ~= 50) end
 end)
 
 CloseButton.MouseButton1Click:Connect(function() MainFrame.Visible = false OpenMenuButton.Visible = true UIS.MouseBehavior = Enum.MouseBehavior.Default end)
@@ -714,26 +724,17 @@ UIS.InputChanged:Connect(function(input) if dragging and input.UserInputType == 
 UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
 --------------------------------------------------------------------------------
--- Lógica Física Unificada do NoClip
+-- LOOPS E PHYSICS PROCESSING
 --------------------------------------------------------------------------------
 RunService.Stepped:Connect(function()
     if noclip_active and player.Character then
         for _, part in ipairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
+            if part:IsA("BasePart") then part.CanCollide = false end
         end
     end
 end)
 
---------------------------------------------------------------------------------
--- Loop RenderStepped Principal (Renderização, Freecam, Fly, Travas God, AutoClick)
---------------------------------------------------------------------------------
 RunService.RenderStepped:Connect(function(delta)
-    if esp_active then
-        for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then ESP.UpdateESP(p) end end
-    end
-
     if aimbot_active and aiming then
         local targetPart = GetClosestPlayerToCursor()
         if targetPart then Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position) end
@@ -741,31 +742,25 @@ RunService.RenderStepped:Connect(function(delta)
 
     if godmode_active and player.Character then
         local hum = player.Character:FindFirstChildOfClass("Humanoid")
-        if hum and hum.Health < hum.MaxHealth then
-            hum.Health = hum.MaxHealth
-        end
+        if hum and hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
     end
 
-    -- LÓGICA DO AUTO CLICKER SUPER RÁPIDO
     if autoclick_active then
-        -- Envia os sinais físicos de clique pressionado e solto de forma imediata
-        VirtualInputManager:SendMouseButtonEvent(UIS:GetMouseLocation().X, UIS:GetMouseLocation().Y, 0, true, game, 0)
-        VirtualInputManager:SendMouseButtonEvent(UIS:GetMouseLocation().X, UIS:GetMouseLocation().Y, 0, false, game, 0)
+        local mx, my = UIS:GetMouseLocation().X, UIS:GetMouseLocation().Y
+        VirtualInputManager:SendMouseButtonEvent(mx, my, 0, true, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(mx, my, 0, false, game, 0)
     end
 
     if freecam_active then
         Camera.CameraType = Enum.CameraType.Scriptable
-        
         local camSpeed = tonumber(FlySpeedBox.Text) or 50
         local moveVector = Vector3.new(0, 0, 0)
-
         if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Camera.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Camera.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Camera.CFrame.RightVector end
         if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Camera.CFrame.RightVector end
         if UIS:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end 
         if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveVector = moveVector - Vector3.new(0, 1, 0) end 
-
         freecam_pos = freecam_pos + (moveVector * camSpeed * delta)
         Camera.CFrame = CFrame.new(freecam_pos) * CFrame.Angles(0, freecam_rotX, 0) * CFrame.Angles(freecam_rotY, 0, 0)
     end
@@ -784,171 +779,29 @@ RunService.RenderStepped:Connect(function(delta)
     if character then
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-
         if humanoid and humanoidRootPart then
-            if freecam_active then
-                humanoidRootPart.Velocity = Vector3.new(0,0,0)
-                return
-            end
-
-            if jumppower_bypass_active then
-                humanoid.UseJumpPower = true
-                humanoid.JumpPower = customJumpPower
-            end
+            if freecam_active then humanoidRootPart.Velocity = Vector3.new(0,0,0) return end
+            if jumppower_bypass_active then humanoid.UseJumpPower = true humanoid.JumpPower = customJumpPower end
 
             if fly_active or noclip_active then
                 humanoid.PlatformStand = true
                 humanoidRootPart.Velocity = Vector3.new(0, 0, 0)
-                
                 local moveVector = Vector3.new(0, 0, 0)
                 local currentFlySpeed = tonumber(FlySpeedBox.Text) or 50
-
                 if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Camera.CFrame.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Camera.CFrame.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Camera.CFrame.RightVector end
                 if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Camera.CFrame.RightVector end
                 if UIS:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end 
                 if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveVector = moveVector - Vector3.new(0, 1, 0) end 
-
-                if moveVector.Magnitude > 0 then 
-                    humanoidRootPart.CFrame = humanoidRootPart.CFrame + moveVector.Unit * currentFlySpeed * delta
-                end
+                if moveVector.Magnitude > 0 then humanoidRootPart.CFrame = humanoidRootPart.CFrame + moveVector.Unit * currentFlySpeed * delta end
             else
-                if humanoid.PlatformStand then
-                    humanoid.PlatformStand = false
-                end
-                
+                if humanoid.PlatformStand then humanoid.PlatformStand = false end
                 if walkspeed_bypass_active and humanoid.MoveDirection.Magnitude > 0 then
                     local speedMultiplier = customWalkSpeed - 16
-                    if speedMultiplier > 0 then
-                        humanoidRootPart.CFrame = humanoidRootPart.CFrame + (humanoid.MoveDirection * (speedMultiplier * delta))
-                    end
+                    if speedMultiplier > 0 then humanoidRootPart.CFrame = humanoidRootPart.CFrame + (humanoid.MoveDirection * (speedMultiplier * delta)) end
                 end
             end
         end
     end
 end)
-
---------------------------------------------------------------------------------
--- Código do esqueleto ESP Avançado Híbrido
---------------------------------------------------------------------------------
-local Config = { SkeletonColor = Color3.fromRGB(180, 50, 50), Thickness = 2, Transparency = 0.4, DistanceFade = true, MaxDistance = 500 }
-local function IsAlive(p) if not p or not p.Character then return false end local humanoid = p.Character:FindFirstChildOfClass("Humanoid") return humanoid and humanoid.Health > 0 end
-
-function ESP.CreateESP(p)
-    if p == LocalPlayer or not p or not p.Character then return end
-    pcall(function()
-        local character = p.Character; local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then return end
-        if ESP[p] then ESP.RemoveESP(p) end
-        
-        local isR15 = character:FindFirstChild("UpperTorso") ~= nil
-        ESP[p] = {lines = {}, isR15 = isR15}
-
-        local parts = {
-            Head = character:FindFirstChild("Head"),
-            UpperTorso = character:FindFirstChild("UpperTorso"),
-            LowerTorso = character:FindFirstChild("LowerTorso"),
-            Torso = character:FindFirstChild("Torso"),
-            LeftUpperArm = character:FindFirstChild("LeftUpperArm"),
-            LeftLowerArm = character:FindFirstChild("LeftLowerArm"),
-            LeftHand = character:FindFirstChild("LeftHand"),
-            LeftArm = character:FindFirstChild("Left Arm"),
-            RightUpperArm = character:FindFirstChild("RightUpperArm"),
-            RightLowerArm = character:FindFirstChild("RightLowerArm"),
-            RightHand = character:FindFirstChild("RightHand"),
-            RightArm = character:FindFirstChild("Right Arm"),
-            LeftUpperLeg = character:FindFirstChild("LeftUpperLeg"),
-            LeftLowerLeg = character:FindFirstChild("LeftLowerLeg"),
-            LeftFoot = character:FindFirstChild("LeftFoot"),
-            LeftLeg = character:FindFirstChild("Left Leg"),
-            RightUpperLeg = character:fromRGB(255,255,255) and character:FindFirstChild("RightUpperLeg"),
-            RightLowerLeg = character:FindFirstChild("RightLowerLeg"),
-            RightFoot = character:FindFirstChild("RightFoot"),
-            RightLeg = character:FindFirstChild("Right Leg")
-        }
-
-        if isR15 then
-            local connections = {
-                {parts.Head, parts.UpperTorso},
-                {parts.UpperTorso, parts.LowerTorso},
-                {parts.UpperTorso, parts.LeftUpperArm}, {parts.LeftUpperArm, parts.LeftLowerArm}, {parts.LeftLowerArm, parts.LeftHand},
-                {parts.UpperTorso, parts.RightUpperArm}, {parts.RightUpperArm, parts.RightLowerArm}, {parts.RightLowerArm, parts.RightHand},
-                {parts.LowerTorso, parts.LeftUpperLeg}, {parts.LeftUpperLeg, parts.LeftLowerLeg}, {parts.LeftLowerLeg, parts.LeftFoot},
-                {parts.LowerTorso, parts.RightUpperLeg}, {parts.RightUpperLeg, parts.RightLowerLeg}, {parts.RightLowerLeg, parts.RightFoot}
-            }
-            for _, conn in ipairs(connections) do
-                if conn[1] and conn[2] then
-                    local line = Drawing.new("Line")
-                    line.Color = Config.SkeletonColor; line.Thickness = Config.Thickness; line.Transparency = Config.Transparency; line.Visible = esp_active
-                    table.insert(ESP[p].lines, {line = line, type = "R15", part1 = conn[1], part2 = conn[2]})
-                end
-            end
-        else
-            for i = 1, 10 do
-                local line = Drawing.new("Line")
-                line.Color = Config.SkeletonColor; line.Thickness = Config.Thickness; line.Transparency = Config.Transparency; line.Visible = esp_active
-                table.insert(ESP[p].lines, {line = line, type = "R6", id = i, parts = parts})
-            end
-        end
-    end)
-end
-
-function ESP.UpdateESP(p)
-    if not ESP[p] or not IsAlive(p) then return end
-    pcall(function()
-        local character = p.Character; local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        local localCharacter = LocalPlayer.Character; local localRoot = localCharacter and localCharacter:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart or not localRoot then return end
-
-        local distance = (humanoidRootPart.Position - localRoot.Position).Magnitude
-        local transparency = Config.Transparency
-        if Config.DistanceFade and distance > 0 then transparency = math.clamp(1 - (distance / Config.MaxDistance), 0.1, 1) end
-
-        for _, data in ipairs(ESP[p].lines) do
-            local line = data.line
-            if esp_active and distance <= Config.MaxDistance then
-                if data.type == "R15" then
-                    local p1, o1 = Camera:WorldToViewportPoint(data.part1.Position)
-                    local p2, o2 = Camera:WorldToViewportPoint(data.part2.Position)
-                    if o1 and o2 then
-                        line.From = Vector2.new(p1.X, p1.Y)
-                        line.To = Vector2.new(p2.X, p2.Y)
-                        line.Transparency = transparency
-                        line.Visible = true
-                    else line.Visible = false end
-                elseif data.type == "R6" then
-                    local parts = data.parts
-                    local head = parts.Head; local torso = parts.Torso
-                    local la = parts.LeftArm; local ra = parts.RightArm
-                    local ll = parts.LeftLeg; local rl = parts.RightLeg
-                    if head and torso and la and ra and ll and rl then
-                        local pFrom, pTo
-                        if data.id == 1 then pFrom = head.Position pTo = torso.CFrame * Vector3.new(0, 1, 0)
-                        elseif data.id == 2 then pFrom = torso.CFrame * Vector3.new(0, 1, 0) pTo = torso.CFrame * Vector3.new(-1, 1, 0)
-                        elseif data.id == 3 then pFrom = torso.CFrame * Vector3.new(0, 1, 0) pTo = torso.CFrame * Vector3.new(1, 1, 0)
-                        elseif data.id == 4 then pFrom = torso.CFrame * Vector3.new(-1, 1, 0) pTo = la.Position
-                        elseif data.id == 5 then pFrom = torso.CFrame * Vector3.new(1, 1, 0) pTo = ra.Position
-                        elseif data.id == 6 then pFrom = torso.CFrame * Vector3.new(0, 1, 0) pTo = torso.CFrame * Vector3.new(0, -1, 0)
-                        elseif data.id == 7 then pFrom = torso.CFrame * Vector3.new(0, -1, 0) pTo = torso.CFrame * Vector3.new(-0.5, -1, 0)
-                        elseif data.id == 8 then pFrom = torso.CFrame * Vector3.new(0, -1, 0) pTo = torso.CFrame * Vector3.new(0.5, -1, 0)
-                        elseif data.id == 9 then pFrom = torso.CFrame * Vector3.new(-0.5, -1, 0) pTo = ll.Position
-                        elseif data.id == 10 then pFrom = torso.CFrame * Vector3.new(0.5, -1, 0) pTo = rl.Position end
-                        
-                        local p1, o1 = Camera:WorldToViewportPoint(pFrom)
-                        local p2, o2 = Camera:WorldToViewportPoint(pTo)
-                        if o1 and o2 then
-                            line.From = Vector2.new(p1.X, p1.Y)
-                            line.To = Vector2.new(p2.X, p2.Y)
-                            line.Transparency = transparency
-                            line.Visible = true
-                        else line.Visible = false end
-                    else line.Visible = false end
-                end
-            else line.Visible = false end
-        end
-    end)
-end
-
-function ESP.RemoveESP(p) if ESP[p] then for _, d in ipairs(ESP[p].lines) do d.line:Remove() end ESP[p] = nil end end
-Players.PlayerRemoving:Connect(ESP.RemoveESP)
