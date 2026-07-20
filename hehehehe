@@ -26,6 +26,30 @@ local Theme = {
     Danger = Color3.fromRGB(150, 40, 40)         -- Botão fechar (X)
 }
 
+-- CONFIGURAÇÃO INICIAL DO FOV DO AIMBOT
+local AimbotFOV = {
+    Radius = 150,
+    Visible = true,
+    Color = Color3.fromRGB(255, 255, 255),
+    Thickness = 1,
+    Transparency = 0.7
+}
+
+-- Criação do Círculo do FOV usando a API Drawing
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+FOVCircle.Radius = AimbotFOV.Radius
+FOVCircle.Color = AimbotFOV.Color
+FOVCircle.Thickness = AimbotFOV.Thickness
+FOVCircle.Filled = false
+FOVCircle.Transparency = AimbotFOV.Transparency
+FOVCircle.Visible = AimbotFOV.Visible
+
+-- Atualiza a posição do círculo caso a tela mude de tamanho
+Camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end)
+
 -- =============================================================================
 -- CRIAÇÃO DOS ELEMENTOS BASE DO HUD
 -- =============================================================================
@@ -187,7 +211,8 @@ local Binds = {
     Aimbot = "V",
     Freecam = "C",
     GodMode = "J",
-    AutoClick = "T"
+    AutoClick = "T",
+    NoRecoil = "Y"
 }
 
 local function CreateRowFrame(parent, order)
@@ -304,6 +329,10 @@ local AimbotToggleButton = CreateModernButton(RowAimbot, "Ativar Aimbot", Theme.
 local AimbotPartButton = CreateModernButton(RowAimbot, "Head", Theme.CardBg, UDim2.new(0, 70, 1, 0), UDim2.new(1, -160, 0, 0))
 local AimbotBindBox = CreateModernBindBox(RowAimbot, Binds.Aimbot)
 
+local AimbotFOVBox = CreateModernTextBox(Page2, "Raio do FOV do Aimbot (Ex: 150)", tostring(AimbotFOV.Radius), 5)
+local RowFOVToggle = CreateRowFrame(Page2, 6)
+local FOVVisualToggleButton = CreateModernButton(RowFOVToggle, "Ocultar Círculo FOV", Theme.BtnActive, UDim2.new(1, 0, 1, 0))
+
 -- Página 3
 local RowGod = CreateRowFrame(Page3, 1)
 local GodModeToggleButton = CreateModernButton(RowGod, "Ativar God Mode", Theme.BtnDefault)
@@ -312,6 +341,10 @@ local GodModeBindBox = CreateModernBindBox(RowGod, Binds.GodMode)
 local RowAutoClick = CreateRowFrame(Page3, 2)
 local AutoClickToggleButton = CreateModernButton(RowAutoClick, "Ativar Auto Clicker", Theme.BtnDefault)
 local AutoClickBindBox = CreateModernBindBox(RowAutoClick, Binds.AutoClick)
+
+local RowNoRecoil = CreateRowFrame(Page3, 3)
+local NoRecoilToggleButton = CreateModernButton(RowNoRecoil, "Ativar No Recoil", Theme.BtnDefault)
+local NoRecoilBindBox = CreateModernBindBox(RowNoRecoil, Binds.NoRecoil)
 
 -- Botão Flutuante de Reabrir Menu
 local OpenMenuButton = Instance.new("TextButton")
@@ -362,7 +395,7 @@ Tab3Button.MouseButton1Click:Connect(function()
 end)
 
 --------------------------------------------------------------------------------
--- ESTADOS E CONTROLES
+-- ESTADOS E CONTROLES (CORRIGIDOS)
 --------------------------------------------------------------------------------
 local esp_active = false 
 local noclip_active = false 
@@ -370,6 +403,7 @@ local fly_active = false
 local invisible_active = false 
 local godmode_active = false
 local autoclick_active = false
+local norecoil_active = false
 
 local spectate_active = false 
 local targetList = {}
@@ -378,6 +412,7 @@ local targetIndex = 1
 local aimbot_active = false
 local aimbot_part = "Head" 
 local aiming = false
+local shooting = false
 
 local freecam_active = false
 local freecam_pos = Vector3.new()
@@ -389,19 +424,18 @@ local customWalkSpeed = 16
 local walkspeed_bypass_active = false 
 local customJumpPower = 50
 local jumppower_bypass_active = false
+local customFlySpeed = 50
 
 local godConnection: RBXScriptConnection? = nil
 
 --------------------------------------------------------------------------------
--- SISTEMA DE ESP MODERNO ATUALIZADO (CORES DINÂMICAS POR TIME)
+-- SISTEMA DE ESP MODERNO
 --------------------------------------------------------------------------------
 local ESP_Storage = {}
 
 local function GetTeamColor(p: Player): Color3
-    if p.Team then
-        return p.TeamColor.Color
-    end
-    return Color3.fromRGB(230, 230, 230) -- Cor padrão caso não tenha time definido
+    if p.Team then return p.TeamColor.Color end
+    return Color3.fromRGB(230, 230, 230)
 end
 
 local function CreatePlayerESP(p: Player)
@@ -418,7 +452,6 @@ local function CreatePlayerESP(p: Player)
         
         local currentTeamColor = GetTeamColor(p)
         
-        -- Outline/Chams adaptável ao time
         local highlight = Instance.new("Highlight")
         highlight.FillColor = currentTeamColor
         highlight.FillTransparency = 0.5
@@ -427,7 +460,6 @@ local function CreatePlayerESP(p: Player)
         highlight.Adornee = char
         highlight.Parent = container
         
-        -- Nome e Distância flutuante
         local head = char:WaitForChild("Head", 5)
         if head then
             local billboard = Instance.new("BillboardGui")
@@ -446,7 +478,6 @@ local function CreatePlayerESP(p: Player)
             textLabel.TextSize = 13
             textLabel.Parent = billboard
             
-            -- Listener para atualizar a cor caso mude de time
             local teamColorConn = p:GetPropertyChangedSignal("Team"):Connect(function()
                 local newColor = GetTeamColor(p)
                 if highlight and highlight.Parent then highlight.FillColor = newColor end
@@ -491,9 +522,7 @@ local function ToggleESP()
     end
 end
 
-Players.PlayerAdded:Connect(function(p)
-    if esp_active then CreatePlayerESP(p) end
-end)
+Players.PlayerAdded:Connect(function(p) if esp_active then CreatePlayerESP(p) end end)
 Players.PlayerRemoving:Connect(RemovePlayerESP)
 
 --------------------------------------------------------------------------------
@@ -515,6 +544,7 @@ ListenForBindChange(AimbotBindBox, "Aimbot")
 ListenForBindChange(FreecamBindBox, "Freecam")
 ListenForBindChange(GodModeBindBox, "GodMode")
 ListenForBindChange(AutoClickBindBox, "AutoClick")
+ListenForBindChange(NoRecoilBindBox, "NoRecoil")
 
 local function UpdateSpectateList()
     targetList = {}
@@ -532,6 +562,12 @@ local function ToggleFly()
     fly_active = not fly_active 
     FlyToggleButton.Text = fly_active and "Desativar Voo" or "Ativar Voo"
     FlyToggleButton.BackgroundColor3 = fly_active and Theme.BtnActive or Theme.BtnDefault
+    
+    -- Reseta a velocidade de queda ao desligar o voo
+    if not fly_active and player.Character then
+        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end
+    end
 end
 
 local function ToggleInvisible()
@@ -643,8 +679,26 @@ local function ToggleAutoClick()
     AutoClickToggleButton.BackgroundColor3 = autoclick_active and Theme.BtnActive or Theme.BtnDefault
 end
 
+local function ToggleNoRecoil()
+    norecoil_active = not norecoil_active
+    NoRecoilToggleButton.Text = norecoil_active and "Desativar No Recoil" or "Ativar No Recoil"
+    NoRecoilToggleButton.BackgroundColor3 = norecoil_active and Theme.BtnActive or Theme.BtnDefault
+end
+
+AimbotFOVBox.FocusLost:Connect(function()
+    local val = tonumber(AimbotFOVBox.Text)
+    if val then AimbotFOV.Radius = val FOVCircle.Radius = val else AimbotFOVBox.Text = tostring(AimbotFOV.Radius) end
+end)
+
+FOVVisualToggleButton.MouseButton1Click:Connect(function()
+    AimbotFOV.Visible = not AimbotFOV.Visible
+    FOVCircle.Visible = AimbotFOV.Visible
+    FOVVisualToggleButton.Text = AimbotFOV.Visible and "Ocultar Círculo FOV" or "Exibir Círculo FOV"
+    FOVVisualToggleButton.BackgroundColor3 = AimbotFOV.Visible and Theme.BtnActive or Theme.BtnDefault
+end)
+
 --------------------------------------------------------------------------------
--- GATILHOS DE CONEXÕES E EVENTOS DE ENTRADA
+-- GATILHOS DE CONEXÕES DE INPUT
 --------------------------------------------------------------------------------
 AimbotPartButton.MouseButton1Click:Connect(function()
     aimbot_part = (aimbot_part == "Head") and "Torso" or "Head"
@@ -656,11 +710,13 @@ UIS.InputBegan:Connect(function(input, processed)
         holding_mouse_look = true
         UIS.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
     end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then shooting = true end
     if processed then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbot_active then aiming = true end
 end)
 
 UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then shooting = false end
     if input.UserInputType == Enum.UserInputType.MouseButton2 then 
         aiming = false 
         if freecam_active then holding_mouse_look = false UIS.MouseBehavior = Enum.MouseBehavior.Default end
@@ -686,6 +742,7 @@ AimbotToggleButton.MouseButton1Click:Connect(ToggleAimbot)
 FreecamToggleButton.MouseButton1Click:Connect(ToggleFreecam)
 GodModeToggleButton.MouseButton1Click:Connect(ToggleGodMode)
 AutoClickToggleButton.MouseButton1Click:Connect(ToggleAutoClick)
+NoRecoilToggleButton.MouseButton1Click:Connect(ToggleNoRecoil)
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end 
@@ -700,22 +757,31 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
         elseif kp == Binds.Freecam then ToggleFreecam()
         elseif kp == Binds.GodMode then ToggleGodMode()
         elseif kp == Binds.AutoClick then ToggleAutoClick()
+        elseif kp == Binds.NoRecoil then ToggleNoRecoil()
         end
     end
 end)
 
 local function GetClosestPlayerToCursor()
-    local closestPlayer = nil; local shortestDistance = math.huge; local mousePos = UIS:GetMouseLocation()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local mousePos = UIS:GetMouseLocation()
+    
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character then
             local targetName = aimbot_part
             if targetName == "Torso" and not p.Character:FindFirstChild("Torso") then targetName = "UpperTorso" end
-            local part = p.Character:FindFirstChild(targetName); local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+            local part = p.Character:FindFirstChild(targetName)
+            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+            
             if part and humanoid and humanoid.Health > 0 then
                 local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                 if onScreen then
                     local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    if distance < shortestDistance then shortestDistance = distance; closestPlayer = part end
+                    if distance < shortestDistance and distance <= AimbotFOV.Radius then 
+                        shortestDistance = distance
+                        closestPlayer = part 
+                    end
                 end
             end
         end
@@ -725,12 +791,17 @@ end
 
 ApplyWalkSpeedButton.MouseButton1Click:Connect(function()
     local speed = tonumber(WalkSpeedBox.Text)
-    if speed then customWalkSpeed = speed; walkspeed_bypass_active = (speed ~= 16) end
+    if speed then customWalkSpeed = speed walkspeed_bypass_active = true end
 end)
 
 ApplyJumpPowerButton.MouseButton1Click:Connect(function()
     local power = tonumber(JumpPowerBox.Text)
-    if power then customJumpPower = power; jumppower_bypass_active = (power ~= 50) end
+    if power then customJumpPower = power jumppower_bypass_active = true end
+end)
+
+FlySpeedBox.FocusLost:Connect(function()
+    local fSpeed = tonumber(FlySpeedBox.Text)
+    if fSpeed then customFlySpeed = fSpeed end
 end)
 
 CloseButton.MouseButton1Click:Connect(function() MainFrame.Visible = false OpenMenuButton.Visible = true UIS.MouseBehavior = Enum.MouseBehavior.Default end)
@@ -742,8 +813,10 @@ UIS.InputChanged:Connect(function(input) if dragging and input.UserInputType == 
 UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
 --------------------------------------------------------------------------------
--- LOOPS E PHYSICS PROCESSING
+-- LOOPS INTERNOS REESTRUTURADOS E OTIMIZADOS DO MOTOR (CORREÇÃO DE FÍSICA)
 --------------------------------------------------------------------------------
+
+-- Loop de NoClip (Precisa rodar no Stepped antes da simulação de física)
 RunService.Stepped:Connect(function()
     if noclip_active and player.Character then
         for _, part in ipairs(player.Character:GetDescendants()) do
@@ -752,74 +825,60 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-RunService.RenderStepped:Connect(function(delta)
+-- Loop de Movimento Dinâmico (Walkspeed, JumpPower e Motor de Voo)
+RunService.Heartbeat:Connect(function(delta)
+    local char = player.Character
+    if not char then return end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    
+    -- Injeção constante de WalkSpeed e JumpPower
+    if humanoid then
+        if walkspeed_bypass_active then humanoid.WalkSpeed = customWalkSpeed end
+        if jumppower_bypass_active then 
+            humanoid.UseJumpPower = true
+            humanoid.JumpPower = customJumpPower 
+        end
+    end
+    
+    -- Mecânica Conseqüente de Voo (Fly) incorporada na Física Real do Jogo
+    if fly_active and hrp and humanoid then
+        local flyVelocity = Vector3.new(0, 0, 0)
+        local lookCFrame = Camera.CFrame
+        
+        if UIS:IsKeyDown(Enum.KeyCode.W) then flyVelocity = flyVelocity + lookCFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then flyVelocity = flyVelocity - lookCFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then flyVelocity = flyVelocity - lookCFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then flyVelocity = flyVelocity + lookCFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then flyVelocity = flyVelocity + Vector3.new(0, 1, 0) end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then flyVelocity = flyVelocity - Vector3.new(0, 1, 0) end
+        
+        if flyVelocity.Magnitude > 0 then
+            hrp.AssemblyLinearVelocity = flyVelocity.Unit * customFlySpeed
+        else
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+    
+    -- Mecânica de Freecam (Movimentação da Câmera Scriptável)
+    if freecam_active then
+        local camVelocity = Vector3.new(0, 0, 0)
+        local lookCFrame = Camera.CFrame
+        
+        if UIS:IsKeyDown(Enum.KeyCode.W) then camVelocity = camVelocity + lookCFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then camVelocity = camVelocity - lookCFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then camVelocity = camVelocity - lookCFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then camVelocity = camVelocity + lookCFrame.RightVector end
+        
+        freecam_pos = freecam_pos + (camVelocity * delta * customFlySpeed)
+        Camera.CFrame = CFrame.new(freecam_pos) * CFrame.fromEulerAnglesYXZ(freecam_rotY, freecam_rotX, 0)
+    end
+end)
+
+-- Loop de Renderização do Aimbot
+RunService.RenderStepped:Connect(function()
     if aimbot_active and aiming then
         local targetPart = GetClosestPlayerToCursor()
         if targetPart then Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position) end
-    end
-
-    if godmode_active and player.Character then
-        local hum = player.Character:FindFirstChildOfClass("Humanoid")
-        if hum and hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
-    end
-
-    if autoclick_active then
-        local mx, my = UIS:GetMouseLocation().X, UIS:GetMouseLocation().Y
-        VirtualInputManager:SendMouseButtonEvent(mx, my, 0, true, game, 0)
-        VirtualInputManager:SendMouseButtonEvent(mx, my, 0, false, game, 0)
-    end
-
-    if freecam_active then
-        Camera.CameraType = Enum.CameraType.Scriptable
-        local camSpeed = tonumber(FlySpeedBox.Text) or 50
-        local moveVector = Vector3.new(0, 0, 0)
-        if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Camera.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Camera.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Camera.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Camera.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end 
-        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveVector = moveVector - Vector3.new(0, 1, 0) end 
-        freecam_pos = freecam_pos + (moveVector * camSpeed * delta)
-        Camera.CFrame = CFrame.new(freecam_pos) * CFrame.Angles(0, freecam_rotX, 0) * CFrame.Angles(freecam_rotY, 0, 0)
-    end
-
-    if spectate_active and not freecam_active then
-        local currentTarget = targetList[targetIndex]
-        if currentTarget and currentTarget.Character then
-            local targetHumanoid = currentTarget.Character:FindFirstChildOfClass("Humanoid")
-            if targetHumanoid and targetHumanoid.Health > 0 then
-                if Camera.CameraSubject ~= targetHumanoid then Camera.CameraSubject = targetHumanoid end
-            else ChangeTarget(1) end
-        else ChangeTarget(1) end
-    end
-
-    local character = player.Character
-    if character then
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if humanoid and humanoidRootPart then
-            if freecam_active then humanoidRootPart.Velocity = Vector3.new(0,0,0) return end
-            if jumppower_bypass_active then humanoid.UseJumpPower = true humanoid.JumpPower = customJumpPower end
-
-            if fly_active or noclip_active then
-                humanoid.PlatformStand = true
-                humanoidRootPart.Velocity = Vector3.new(0, 0, 0)
-                local moveVector = Vector3.new(0, 0, 0)
-                local currentFlySpeed = tonumber(FlySpeedBox.Text) or 50
-                if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Camera.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Camera.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Camera.CFrame.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Camera.CFrame.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end 
-                if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveVector = moveVector - Vector3.new(0, 1, 0) end 
-                if moveVector.Magnitude > 0 then humanoidRootPart.CFrame = humanoidRootPart.CFrame + moveVector.Unit * currentFlySpeed * delta end
-            else
-                if humanoid.PlatformStand then humanoid.PlatformStand = false end
-                if walkspeed_bypass_active and humanoid.MoveDirection.Magnitude > 0 then
-                    local speedMultiplier = customWalkSpeed - 16
-                    if speedMultiplier > 0 then humanoidRootPart.CFrame = humanoidRootPart.CFrame + (humanoid.MoveDirection * (speedMultiplier * delta)) end
-                end
-            end
-        end
     end
 end)
