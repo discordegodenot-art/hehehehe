@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local Teams = game:GetService("Teams")
 local Camera = workspace.CurrentCamera
 
 local player = Players.LocalPlayer
@@ -392,9 +393,16 @@ local jumppower_bypass_active = false
 local godConnection: RBXScriptConnection? = nil
 
 --------------------------------------------------------------------------------
--- SISTEMA DE ESP MODERNO E CORRIGIDO (NATIVO HIGHLIGHT)
+-- SISTEMA DE ESP MODERNO ATUALIZADO (CORES DINÂMICAS POR TIME)
 --------------------------------------------------------------------------------
 local ESP_Storage = {}
+
+local function GetTeamColor(p: Player): Color3
+    if p.Team then
+        return p.TeamColor.Color
+    end
+    return Color3.fromRGB(230, 230, 230) -- Cor padrão caso não tenha time definido
+end
 
 local function CreatePlayerESP(p: Player)
     if p == player then return end
@@ -408,9 +416,11 @@ local function CreatePlayerESP(p: Player)
         container.Parent = ScreenGui
         ESP_Storage[p] = container
         
-        -- Outline/Chams moderno e limpo
+        local currentTeamColor = GetTeamColor(p)
+        
+        -- Outline/Chams adaptável ao time
         local highlight = Instance.new("Highlight")
-        highlight.FillColor = Color3.fromRGB(180, 50, 50)
+        highlight.FillColor = currentTeamColor
         highlight.FillTransparency = 0.5
         highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
         highlight.OutlineTransparency = 0.2
@@ -430,16 +440,24 @@ local function CreatePlayerESP(p: Player)
             local textLabel = Instance.new("TextLabel")
             textLabel.Size = UDim2.new(1, 0, 1, 0)
             textLabel.BackgroundTransparency = 1
-            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            textLabel.TextColor3 = currentTeamColor
             textLabel.TextStrokeTransparency = 0.2
             textLabel.Font = Enum.Font.GothamBold
             textLabel.TextSize = 13
             textLabel.Parent = billboard
             
-            local conn
-            conn = RunService.RenderStepped:Connect(function()
+            -- Listener para atualizar a cor caso mude de time
+            local teamColorConn = p:GetPropertyChangedSignal("Team"):Connect(function()
+                local newColor = GetTeamColor(p)
+                if highlight and highlight.Parent then highlight.FillColor = newColor end
+                if textLabel and textLabel.Parent then textLabel.TextColor3 = newColor end
+            end)
+            
+            local renderConn
+            renderConn = RunService.RenderStepped:Connect(function()
                 if not esp_active or not char:IsDescendantOf(workspace) or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-                    conn:Disconnect()
+                    renderConn:Disconnect()
+                    teamColorConn:Disconnect()
                     return
                 end
                 local hrp = char:FindFirstChild("HumanoidRootPart")
